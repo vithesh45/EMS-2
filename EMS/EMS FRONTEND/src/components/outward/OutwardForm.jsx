@@ -59,7 +59,7 @@ const OutwardForm = ({ onBack }) => {
   useEffect(() => {
     const fetchIndents = async () => {
       try {
-        const response = await api.get('/inventory/indents/');
+        const response = await api.get('/indents/');
         setIndents(response.data);
       } catch (err) {
         console.error("Failed to fetch indents", err);

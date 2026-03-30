@@ -33,7 +33,7 @@ const AddSubContractorModal = ({ isOpen, onClose, onAdd }) => {
 };
 
 const IndentForm = ({ onBack, readOnly = false, initialData = null }) => {
-  const { state, dispatch } = useStock();
+  const { state, dispatch, addIndent } = useStock();
   const [showModal, setShowModal] = useState(false);
   const [error, setError] = useState(''); // Added local error state
   const [formData, setFormData] = useState({
@@ -100,7 +100,7 @@ const IndentForm = ({ onBack, readOnly = false, initialData = null }) => {
     setItems(items.map(i => (i.woNumber === woNo && i.itemId === itemId) ? { ...i, currentIssuing: Number(val) } : i));
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     // 1. Check Header Fields
     if (!formData.indentNo || !formData.subContractorId) {
       setError('Please provide Indent Number and Select Sub-contractor.');
@@ -120,22 +120,25 @@ const IndentForm = ({ onBack, readOnly = false, initialData = null }) => {
       return;
     }
 
-    // --- LOCAL STORAGE SYNC ---
-    const existingIndents = JSON.parse(localStorage.getItem('indents') || '[]');
-    if (!existingIndents.includes(formData.indentNo)) {
-        localStorage.setItem('indents', JSON.stringify([...existingIndents, formData.indentNo]));
+    try {
+      // Call backend API
+      const payload = {
+        indentNo: formData.indentNo,
+        workOrderId: selectedWOs[0], // Use first selected WO
+        subContractorId: formData.subContractorId,
+        status: 'Todo',
+        items: itemsToIssue.map(item => ({
+          itemId: item.itemId,
+          quantity: item.currentIssuing
+        }))
+      };
+      
+      await addIndent(payload);
+      onBack();
+    } catch (error) {
+      console.error('Error creating indent:', error);
+      alert('Failed to create indent. Please check the backend connection.');
     }
-    // -------------------------
-
-    dispatch({ 
-      type: 'ADD_INDENT', 
-      payload: { 
-        ...formData, 
-        workOrderIds: selectedWOs, 
-        items: itemsToIssue 
-      } 
-    });
-    onBack();
   };
 
   return (

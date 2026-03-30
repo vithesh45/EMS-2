@@ -77,6 +77,24 @@ class Indent(models.Model):
     indent_no = models.CharField(max_length=100)
     wo = models.ForeignKey(WorkOrder, on_delete=models.CASCADE)
     subcontractor = models.ForeignKey(SubContractor, on_delete=models.CASCADE)
+    date = models.DateField(default='2026-03-06')
+    status = models.CharField(max_length=50, default='Todo')
+
+    def __str__(self):
+        return self.indent_no
+
+class IndentItem(models.Model):
+    indent = models.ForeignKey(Indent, on_delete=models.CASCADE, related_name="items")
+    material = models.ForeignKey(Material, on_delete=models.CASCADE)
+    quantity = models.DecimalField(max_digits=10, decimal_places=2)
+    issued = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+
+    class Meta:
+        unique_together = ("indent", "material")
+
+    def __str__(self):
+        return f"{self.indent.indent_no} - {self.material.name}"
+
 
 
 # ------------------ INWARD ------------------

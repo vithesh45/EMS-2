@@ -1,6 +1,8 @@
 from django.contrib import admin
 from .models import (
     Material, Supplier, SubContractor,
+    WorkOrder, WorkOrderMaterial,
+    Indent, IndentItem,
     Inward, InwardItem,
     Outward, OutwardItem,
     StoreStock, SubContractorStock
@@ -25,6 +27,34 @@ class SupplierAdmin(admin.ModelAdmin):
 class SubContractorAdmin(admin.ModelAdmin):
     list_display = ("name", "contact_info")
     search_fields = ("name",)
+
+
+# ---------------- WORK ORDER ----------------
+class WorkOrderMaterialInline(admin.TabularInline):
+    model = WorkOrderMaterial
+    extra = 1
+
+
+@admin.register(WorkOrder)
+class WorkOrderAdmin(admin.ModelAdmin):
+    list_display = ('wo_number', 'bescom_office', 'village', 'status')
+    list_filter = ('status', 'bescom_office')
+    search_fields = ('wo_number', 'village')
+    inlines = [WorkOrderMaterialInline]
+
+
+# ---------------- INDENT ----------------
+class IndentItemInline(admin.TabularInline):
+    model = IndentItem
+    extra = 1
+
+
+@admin.register(Indent)
+class IndentAdmin(admin.ModelAdmin):
+    list_display = ('indent_no', 'wo', 'subcontractor', 'status', 'date')
+    list_filter = ('status', 'date')
+    search_fields = ('indent_no', 'wo__wo_number')
+    inlines = [IndentItemInline]
 
 
 # ---------------- INWARD ----------------
@@ -75,7 +105,7 @@ class OutwardAdmin(admin.ModelAdmin):
 
             # Subcontractor stock
             sub_stock, _ = SubContractorStock.objects.get_or_create(
-                subcontractor=outward.subcontractor_id,
+                subcontractor=outward.subcontractor,
                 material=item.material
             )
             sub_stock.quantity += item.quantity

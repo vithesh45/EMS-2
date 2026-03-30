@@ -12,7 +12,7 @@ const WorkOrderModule = ({ readOnly = false }) => {
   const [selectedEntry, setSelectedEntry] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
 
-  const filteredWO = state.workOrders.filter(wo => 
+  const filteredWO = (state.workOrders || []).filter(wo => 
     wo.woNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (wo.region && wo.region.toLowerCase().includes(searchTerm.toLowerCase()))
   );

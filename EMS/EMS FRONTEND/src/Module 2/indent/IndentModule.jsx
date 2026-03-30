@@ -13,12 +13,12 @@ const IndentModule = ({ readOnly = false }) => {
   const [selectedIndent, setSelectedIndent] = useState(null);
 
   const filteredEntries = useMemo(() => {
-    return state.indents.filter(entry =>
+    return (state.indents || []).filter(entry =>
       entry.indentNo.toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [state.indents, searchTerm]);
 
- if (showForm) return <IndentForm onBack={() => setShowForm(false)} readOnly={readOnly} />;
+  if (showForm) return <IndentForm onBack={() => setShowForm(false)} readOnly={readOnly} />;
   if (selectedIndent) return <IndentDetails indent={selectedIndent} onBack={() => setSelectedIndent(null)} readOnly={readOnly} />;
 
   const columns = [

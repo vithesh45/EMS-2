@@ -32,6 +32,8 @@ class StoreStockSerializer(serializers.ModelSerializer):
 # -------- WORK ORDER --------
 class WorkOrderMaterialSerializer(serializers.ModelSerializer):
     material = MaterialSerializer(read_only=True)
+    material_name = serializers.ReadOnlyField(source='material.name')
+    material_id = serializers.ReadOnlyField(source='material.material_id')
 
     class Meta:
         model = WorkOrderMaterial
@@ -47,9 +49,22 @@ class WorkOrderSerializer(serializers.ModelSerializer):
 
 
 # -------- INDENT --------
+class IndentItemSerializer(serializers.ModelSerializer):
+    material = MaterialSerializer(read_only=True)
+    material_name = serializers.ReadOnlyField(source='material.name')
+    material_id = serializers.ReadOnlyField(source='material.material_id')
+
+    class Meta:
+        model = IndentItem
+        fields = "__all__"
+
+
 class IndentSerializer(serializers.ModelSerializer):
     wo = WorkOrderSerializer(read_only=True)
     subcontractor = SubContractorSerializer(read_only=True)
+    items = IndentItemSerializer(many=True, read_only=True)
+    indent_no = serializers.ReadOnlyField(source='indent_id')
+    indentNo = serializers.ReadOnlyField(source='indent_id')
 
     class Meta:
         model = Indent
@@ -95,6 +110,7 @@ class OutwardSerializer(serializers.ModelSerializer):
     subcontractor = SubContractorSerializer(read_only=True)
     subcontractor_name = serializers.ReadOnlyField(source='subcontractor.name')
     subcontractor_id = serializers.ReadOnlyField(source='subcontractor.subcontractor_id')
+    indent = IndentSerializer(read_only=True)
     items = OutwardItemSerializer(many=True, read_only=True)
     outward_no = serializers.ReadOnlyField(source='outward_id')  # Use outward_id as outward_no
     outwardNo = serializers.ReadOnlyField(source='outward_id')  # Alias for frontend compatibility
@@ -102,3 +118,14 @@ class OutwardSerializer(serializers.ModelSerializer):
     class Meta:
         model = Outward
         fields = "__all__"
+
+
+# -------- DELIVERY INSTRUCTIONS & DWA (For future modules) --------
+class DeliveryInstructionSerializer(serializers.Serializer):
+    """Placeholder for DI module - stores in memory/mock for now"""
+    pass
+
+
+class DWASerializer(serializers.Serializer):
+    """Placeholder for DWA module - stores in memory/mock for now"""
+    pass

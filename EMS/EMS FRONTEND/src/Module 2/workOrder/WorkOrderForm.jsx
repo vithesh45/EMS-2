@@ -5,7 +5,7 @@ import Button from '../../components/common/Button';
 import Input from '../../components/common/Input';
 
 const WorkOrderForm = ({ onBack, readOnly = false, initialData = null }) => {
-  const { state, dispatch } = useStock();
+  const { state, dispatch, addWorkOrder } = useStock();
   
   const [formData, setFormData] = useState({
     woNumber: initialData?.woNumber || '',
@@ -28,24 +28,30 @@ const WorkOrderForm = ({ onBack, readOnly = false, initialData = null }) => {
     setTempItem({ itemId: '', estimated: '' });
   };
 
- const handleCreate = () => {
+ const handleCreate = async () => {
     if (!formData.woNumber || !formData.region || addedItems.length === 0) {
       alert("Please fill WO Number, Region and add at least one item.");
       return;
     }
 
-    dispatch({
-      type: 'ADD_WORK_ORDER',
-      payload: { 
-        woNumber: formData.woNumber, 
+    try {
+      // Call backend API
+      const payload = {
+        woNumber: formData.woNumber,
         region: formData.region,
         date: formData.date,
-        items: addedItems
-      }
-    });
-    
-    // This was missing! It takes you back to the list
-    onBack(); 
+        items: addedItems.map(item => ({
+          itemId: item.itemId,
+          estimated: item.estimated
+        }))
+      };
+      
+      await addWorkOrder(payload);
+      onBack();
+    } catch (error) {
+      console.error('Error creating work order:', error);
+      alert('Failed to create work order. Please check the backend connection.');
+    }
   }; 
 
   return (

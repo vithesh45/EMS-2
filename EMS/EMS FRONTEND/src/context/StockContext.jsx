@@ -21,6 +21,8 @@ case 'INIT_BACKEND_DATA':
     items: action.payload.materials !== undefined ? action.payload.materials : [],
     inwardEntries: action.payload.inwards !== undefined ? action.payload.inwards : [],
     outwardEntries: action.payload.outwards !== undefined ? action.payload.outwards : [],
+    workOrders: action.payload.workOrders !== undefined ? action.payload.workOrders : [],
+    indents: action.payload.indents !== undefined ? action.payload.indents : [],
     stock: action.payload.stock !== undefined ? action.payload.stock : {}
   };
 
@@ -171,13 +173,15 @@ export const StockProvider = ({ children }) => {
   const loadBackendData = async () => {
     try {
       // Fetch ALL endpoints - note the trailing slashes!
-      const [materials, suppliers, subcontractors, inwards, outwards, storeStock] = await Promise.all([
+      const [materials, suppliers, subcontractors, inwards, outwards, storeStock, workOrders, indents] = await Promise.all([
         api.get('/materials/').then(res => res.data).catch(() => []),
         api.get('/suppliers/').then(res => res.data).catch(() => []),
         api.get('/subcontractors/').then(res => res.data).catch(() => []),
         api.get('/inwards/').then(res => res.data).catch(() => []),
         api.get('/outwards/').then(res => res.data).catch(() => []),
-        api.get('/store-stock/').then(res => res.data).catch(() => [])
+        api.get('/store-stock/').then(res => res.data).catch(() => []),
+        api.get('/work-orders/').then(res => res.data).catch(() => []),
+        api.get('/indents/').then(res => res.data).catch(() => [])
       ]);
 
       const stockMap = {};
@@ -199,7 +203,9 @@ export const StockProvider = ({ children }) => {
           subcontractors, 
           inwards, 
           outwards, 
-          stock: stockMap 
+          stock: stockMap,
+          workOrders: workOrders || [],
+          indents: indents || []
         }
       });
     } catch (err) {
@@ -212,7 +218,9 @@ export const StockProvider = ({ children }) => {
           suppliers: [], 
           subcontractors: [], 
           inwards: [], 
-          outwards: [], 
+          outwards: [],
+          workOrders: [],
+          indents: [], 
           stock: {} 
         }
       });
@@ -244,8 +252,28 @@ export const StockProvider = ({ children }) => {
     }
   };
 
+  // 5. Work Order Function (Using Axios)
+  const addWorkOrder = async (payload) => {
+    try {
+      await api.post('/work-orders/', payload);
+      await loadBackendData();
+    } catch (err) {
+      throw err;
+    }
+  };
+
+  // 6. Indent Function (Using Axios)
+  const addIndent = async (payload) => {
+    try {
+      await api.post('/indents/', payload);
+      await loadBackendData();
+    } catch (err) {
+      throw err;
+    }
+  };
+
   return (
-    <StockContext.Provider value={{ state, dispatch, addInward, addOutward }}>
+    <StockContext.Provider value={{ state, dispatch, addInward, addOutward, addWorkOrder, addIndent }}>
       {children}
     </StockContext.Provider>
   );
