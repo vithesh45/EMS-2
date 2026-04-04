@@ -126,7 +126,6 @@ const IndentForm = ({ onBack, readOnly = false, initialData = null }) => {
   };
 
   const handleSubmit = async () => {
-  const handleSubmit = async () => {
     // 1. Check Header Fields
     if (!formData.indentNo || !formData.subContractorId) {
       setError('Please provide Indent Number and Select Sub-contractor.');

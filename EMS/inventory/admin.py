@@ -49,12 +49,28 @@ class IndentItemInline(admin.TabularInline):
     extra = 1
 
 
-@admin.register(Indent)
+# @admin.register(Indent)
+# class IndentAdmin(admin.ModelAdmin):
+#     list_display = ('indent_no', 'wo', 'subcontractor', 'status', 'date')
+#     list_filter = ('status', 'date')
+#     search_fields = ('indent_no', 'wo__wo_number')
+#     inlines = [IndentItemInline]
+
+
+
 class IndentAdmin(admin.ModelAdmin):
-    list_display = ('indent_no', 'wo', 'subcontractor', 'status', 'date')
-    list_filter = ('status', 'date')
-    search_fields = ('indent_no', 'wo__wo_number')
-    inlines = [IndentItemInline]
+    list_display = ['indent_no', 'display_work_orders', 'subcontractor', 'date', 'status']
+    list_filter = ['status', 'date']
+    search_fields = ['indent_no', 'subcontractor__name']
+    
+    def display_work_orders(self, obj):
+        """Display work order numbers as comma-separated string"""
+        if obj.wo.exists():
+            return ', '.join([str(wo.wo_number) for wo in obj.wo.all()])
+        return '-'
+    display_work_orders.short_description = 'Work Orders'
+    
+admin.site.register(Indent, IndentAdmin)
 
 
 # ---------------- INWARD ----------------
