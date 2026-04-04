@@ -3,6 +3,7 @@ import { Plus, Trash2, ChevronLeft } from 'lucide-react';
 import { useStock } from '../../hooks/useStock';
 import Button from '../../components/common/Button';
 import Input from '../../components/common/Input';
+import api from '../../api/base';
 
 const WorkOrderForm = ({ onBack, readOnly = false, initialData = null }) => {
   const { state, dispatch, addWorkOrder } = useStock();
@@ -20,7 +21,8 @@ const WorkOrderForm = ({ onBack, readOnly = false, initialData = null }) => {
     if (!tempItem.itemId || !tempItem.estimated || tempItem.estimated <= 0) return;
     
     setAddedItems([...addedItems, { 
-      itemId: Number(tempItem.itemId), 
+      // Keep itemId as-is; we'll resolve material_id || id when sending to backend
+      itemId: tempItem.itemId, 
       estimated: Number(tempItem.estimated),
       issued: 0 
     }]);
@@ -103,7 +105,14 @@ const WorkOrderForm = ({ onBack, readOnly = false, initialData = null }) => {
                 onBlur={(e) => (e.target.size = 1)}
               >
                 <option value="">-- Choose Material --</option>
-                {state.items.map(i => <option key={i.id} value={i.id}>{i.name}</option>)}
+                {(state.items || []).map(i => {
+                  const materialId = i.material_id || i.id;
+                  return (
+                    <option key={materialId} value={materialId}>
+                      {i.name}
+                    </option>
+                  );
+                })}
               </select>
             </div>
             <div className="w-48">
@@ -137,7 +146,9 @@ const WorkOrderForm = ({ onBack, readOnly = false, initialData = null }) => {
           <tbody>
             {addedItems.length > 0 ? (
               addedItems.map((item, idx) => {
-                const itemInfo = state.items.find(i => i.id === item.itemId);
+                const itemInfo = state.items.find(i => 
+                  String(i.material_id || i.id) === String(item.itemId)
+                );
                 return (
                   <tr key={idx} className="border-b border-gray-100 hover:bg-gray-50">
                     <td className="px-6 py-3 font-bold text-gray-900">{itemInfo?.name}</td>

@@ -10,11 +10,16 @@ const BillPDF = React.forwardRef(({ indent }, ref) => {
 
     // Use the items directly from the Indent entry
     const rows = (indent.items || []).map(indentItem => {
-      const masterItem = state.items.find(i => i.id === indentItem.itemId);
+      const masterItem = state.items.find(i => 
+        String(i.material_id || i.id) === String(indentItem.itemId)
+      );
+
+      const displayName = indentItem.material_name || masterItem?.name || 'Item';
+      const displayUnit = indentItem.unit || masterItem?.unit || 'Nos';
       
       const mRate = masterItem?.materialRate || 0;
       const eRate = masterItem?.erectionRate || 0;
-      const qty = indentItem.currentIssuing || 0; // Use real issued qty
+      const qty = indentItem.currentIssuing || indentItem.quantity || 0; // Use real issued qty
 
       const mCost = mRate * qty;
       const eCost = eRate * qty;
@@ -23,8 +28,8 @@ const BillPDF = React.forwardRef(({ indent }, ref) => {
       totalErec += eCost;
 
       return {
-        name: masterItem?.name || 'Item',
-        unit: masterItem?.unit || 'Nos',
+        name: displayName,
+        unit: displayUnit,
         qty,
         mRate,
         eRate,
@@ -54,11 +59,11 @@ const BillPDF = React.forwardRef(({ indent }, ref) => {
                <div className="p-1.5 text-right font-bold text-[9px]">GST: 29AAICM6834H1Z2</div>
             </div>
             <div className="grid grid-cols-2 border-b border-black">
-              <div className="p-1.5 border-r border-black font-bold">DWA No: {indent.dwaNo}</div>
-              <div className="p-1.5 text-right font-semibold">Date: {indent.date}</div>
+              <div className="p-1.5 border-r border-black font-bold">DWA No: {indent.dwaNo || indent.dwa_no || '-'}</div>
+              <div className="p-1.5 text-right font-semibold">Date: {indent.date || '-'}</div>
             </div>
             <div className="p-1.5 text-center font-bold bg-yellow-50">
-              SUB-CONTRACTOR: {state.subContractors.find(s => s.id === indent.subContractorId)?.name}
+              SUB-CONTRACTOR: {state.subContractors.find(s => String(s.id || s.subcontractor_id) === String(indent.subContractorId))?.name || '-'}
             </div>
           </div>
         </div>

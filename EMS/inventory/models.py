@@ -75,7 +75,7 @@ class WorkOrderMaterial(models.Model):
 class Indent(models.Model):
     indent_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     indent_no = models.CharField(max_length=100)
-    wo = models.ForeignKey(WorkOrder, on_delete=models.CASCADE)
+    wo = models.ManyToManyField(WorkOrder)
     subcontractor = models.ForeignKey(SubContractor, on_delete=models.CASCADE)
     date = models.DateField(default='2026-03-06')
     status = models.CharField(max_length=50, default='Todo')

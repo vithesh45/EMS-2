@@ -13,23 +13,25 @@ const StockDashboard = () => {
   
   // FIX 2: Add safety check to return empty array if state.items doesn't exist yet
   const items = state?.items || [];
+  // Always work against a safe stock map to avoid undefined access
+  const stockMap = state?.stock || {};
 
   // Stats Calculation - Use material_id || id for keys
   const lowStockItems = items.filter(i => {
     const itemId = i.material_id || i.id;
-    const qty = state.stock[itemId] || 0;
+    const qty = stockMap[itemId] || 0;
     return qty < 50 && qty > 0;
   });
   
   const outOfStockItems = items.filter(i => {
     const itemId = i.material_id || i.id;
-    return (state.stock[itemId] || 0) === 0;
+    return (stockMap[itemId] || 0) === 0;
   });
 
   // Filtering Logic - Use material_id || id for keys
   const filteredItems = items.filter(item => {
     const itemId = item.material_id || item.id;
-    const qty = state.stock[itemId] || 0;
+    const qty = stockMap[itemId] || 0;
     // FIX 3: Safety check for item.name
     const matchesSearch = (item?.name || "").toLowerCase().includes(searchTerm.toLowerCase());
     
@@ -107,7 +109,7 @@ const StockDashboard = () => {
               <StockCard
                 key={itemId} // Use material_id || id for unique key
                 item={item}
-                quantity={state.stock[itemId] || 0}
+                quantity={stockMap[itemId] || 0}
               />
             );
           })}

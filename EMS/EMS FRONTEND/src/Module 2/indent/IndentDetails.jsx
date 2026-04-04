@@ -9,13 +9,8 @@ const IndentDetails = ({ indent, onBack }) => {
   const sub = state.subContractors.find(s => s.id === indent.subContractorId);
 
   const handleComplete = () => {
-    if (window.confirm('Are you sure? This will deduct materials from Warehouse Inventory and mark the Indent/Work Orders as Completed.')) {
-      dispatch({ 
-        type: 'COMPLETE_INDENT', 
-        payload: { indentId: indent.id } 
-      });
-      onBack();
-    }
+    // Completion is now handled in InventoryModule via backend PATCH
+    alert('Completion is now managed from the Inventory screen to ensure backend stock is updated.');
   };
 
   return (
@@ -65,24 +60,36 @@ const IndentDetails = ({ indent, onBack }) => {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {indent.items.map((item, idx) => {
-              const itemInfo = state.items.find(i => i.id === Number(item.itemId));
-              return (
-                <tr key={idx} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-6 py-4 text-sm text-gray-400 font-medium">{idx + 1}</td>
-                  <td className="px-6 py-4 text-sm font-black text-indigo-600">
-                    {item.woNumber}
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="text-sm font-bold text-gray-900">{itemInfo?.name}</div>
-                    <div className="text-xs text-gray-500 italic">{itemInfo?.unit}</div>
-                  </td>
-                  <td className="px-6 py-4 text-center text-sm font-black text-blue-700 bg-blue-50/30">
-                    {item.currentIssuing}
-                  </td>
-                </tr>
-              );
-            })}
+            {(indent.items || []).length > 0 ? (
+              indent.items.map((item, idx) => {
+                const itemInfo = state.items.find(i => 
+                  String(i.material_id || i.id) === String(item.itemId)
+                );
+                const displayName = item.material_name || itemInfo?.name || 'Unknown';
+                const displayUnit = item.unit || itemInfo?.unit || '-';
+                return (
+                  <tr key={item.itemId || idx} className="hover:bg-gray-50 transition-colors">
+                    <td className="px-6 py-4 text-sm text-gray-400 font-medium">{idx + 1}</td>
+                    <td className="px-6 py-4 text-sm font-black text-indigo-600">
+                      {item.woNumber}
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="text-sm font-bold text-gray-900">{displayName}</div>
+                      <div className="text-xs text-gray-500 italic">{displayUnit}</div>
+                    </td>
+                    <td className="px-6 py-4 text-center text-sm font-black text-blue-700 bg-blue-50/30">
+                      {item.currentIssuing}
+                    </td>
+                  </tr>
+                );
+              })
+            ) : (
+              <tr>
+                <td colSpan={4} className="px-6 py-8 text-center text-gray-400 text-sm italic">
+                  No Data Found
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>

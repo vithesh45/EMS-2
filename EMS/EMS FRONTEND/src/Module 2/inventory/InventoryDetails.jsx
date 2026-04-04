@@ -60,17 +60,30 @@ const InventoryDetails = ({ data, type, onBack }) => {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {data.items.map((item, idx) => {
-                const itemDetails = state.items.find(i => i.id === item.itemId);
-                return (
-                  <tr key={idx} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 text-gray-800">{itemDetails?.name}</td>
-                    <td className="px-6 py-4 text-center font-mono font-bold">
-                      {type === 'INDENT' ? item.currentIssuing : item.estimated}
-                    </td>
-                  </tr>
-                );
-              })}
+              {(data.items || []).length > 0 ? (
+                data.items.map((item, idx) => {
+                  const itemDetails = state.items.find(i => 
+                    String(i.material_id || i.id) === String(item.itemId)
+                  );
+                  const displayName = item.material_name || itemDetails?.name || 'Unknown';
+                  return (
+                    <tr key={item.itemId || idx} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 text-gray-800">
+                        {displayName}
+                      </td>
+                      <td className="px-6 py-4 text-center font-mono font-bold">
+                        {type === 'INDENT' ? item.currentIssuing : item.estimated}
+                      </td>
+                    </tr>
+                  );
+                })
+              ) : (
+                <tr>
+                  <td colSpan={2} className="px-6 py-8 text-center text-gray-400 text-sm italic">
+                    No Data Found
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>

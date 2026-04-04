@@ -4,6 +4,7 @@ import { useStock } from '../../hooks/useStock';
 import Button from '../../components/common/Button';
 import Input from '../../components/common/Input';
 import Modal from '../../components/common/Modal';
+import api from '../../api/base';
 
 const AddSubContractorModal = ({ isOpen, onClose, onAdd }) => {
   const { dispatch } = useStock();
@@ -50,56 +51,81 @@ const IndentForm = ({ onBack, readOnly = false, initialData = null }) => {
     if (e.target.value === 'add-new') {
       setShowModal(true);
     } else {
-      const sub = state.subContractors.find(s => s.id === Number(e.target.value));
-      setFormData({ ...formData, subContractorId: Number(e.target.value), region: sub?.region || formData.region });
+      const sub = state.subContractors.find(s => 
+        String(s.subcontractor_id || s.id) === String(e.target.value)
+      );
+      setFormData({ 
+        ...formData, 
+        subContractorId: e.target.value, 
+        region: sub?.region || formData.region 
+      });
     }
   };
 
   const handleWOSelection = (woId) => {
     if (readOnly) return;
-    setError(''); // Clear error when user interacts
-    const wo = state.workOrders.find(w => w.id === Number(woId));
-    
-    if (selectedWOs.includes(wo.id)) {
-      const updatedWOs = selectedWOs.filter(id => id !== wo.id);
-      setSelectedWOs(updatedWOs);
-      setItems(items.filter(item => item.woNumber !== wo.woNumber));
-      
-      const remainingRegions = state.workOrders
-        .filter(w => updatedWOs.includes(w.id))
-        .map(w => w.region);
-      setFormData(prev => ({ ...prev, region: [...new Set(remainingRegions)].join(', ') }));
-      
-    } else {
-      const updatedWOs = [...selectedWOs, wo.id];
+    setError('');
+
+    // Support both backend (wo_id) and mock (id) shapes safely
+    const wo = (state.workOrders || []).find(w =>
+      String(w.wo_id || w.id) === String(woId)
+    );
+    if (!wo) return;
+
+    const woKey = String(wo.wo_id || wo.id);
+
+    if (selectedWOs.some(id => String(id) === woKey)) {
+      const updatedWOs = selectedWOs.filter(id => String(id) !== woKey);
       setSelectedWOs(updatedWOs);
 
-      const allSelectedRegions = state.workOrders
-        .filter(w => updatedWOs.includes(w.id))
-        .map(w => w.region);
-      
+      setItems(items.filter(item => {
+        const itemWo = item.wo_number || item.woNumber || item.work_order_number;
+        const currentWo = wo.wo_number || wo.woNumber || wo.work_order_number;
+        return String(itemWo) !== String(currentWo);
+      }));
+
+      const remainingRegions = (state.workOrders || [])
+        .filter(w => updatedWOs.some(id => String(id) === String(w.wo_id || w.id)))
+        .map(w => w.region)
+        .filter(Boolean);
+
+      setFormData(prev => ({
+        ...prev,
+        region: [...new Set(remainingRegions)].join(', ')
+      }));
+    } else {
+      const updatedWOs = [...selectedWOs, wo.wo_id || wo.id];
+      setSelectedWOs(updatedWOs);
+
+      const allSelectedRegions = (state.workOrders || [])
+        .filter(w => updatedWOs.some(id => String(id) === String(w.wo_id || w.id)))
+        .map(w => w.region)
+        .filter(Boolean);
+
       setFormData(prev => ({
         ...prev,
         region: [...new Set(allSelectedRegions)].join(', ')
       }));
 
-      const newItems = wo.items.map(woItem => ({
+      const newItems = Array.isArray(wo.items) ? wo.items.map(woItem => ({
         itemId: woItem.itemId,
-        woNumber: wo.woNumber,
+        wo_number: wo.wo_number || wo.woNumber || wo.work_order_number,
         estimated: woItem.estimated,
-        issued: woItem.issued || 0, 
+        issued: woItem.issued || 0,
         currentIssuing: 0
-      }));
-      setItems([...items, ...newItems]);
+      })) : [];
+
+      setItems(prev => [...prev, ...newItems]);
     }
   };
 
   const updateQty = (woNo, itemId, val) => {
     if (readOnly) return;
     setError(''); 
-    setItems(items.map(i => (i.woNumber === woNo && i.itemId === itemId) ? { ...i, currentIssuing: Number(val) } : i));
+    setItems(items.map(i => (String(i.wo_number) === String(woNo) && i.itemId === itemId) ? { ...i, currentIssuing: Number(val) } : i));
   };
 
+  const handleSubmit = async () => {
   const handleSubmit = async () => {
     // 1. Check Header Fields
     if (!formData.indentNo || !formData.subContractorId) {
@@ -117,6 +143,51 @@ const IndentForm = ({ onBack, readOnly = false, initialData = null }) => {
     const itemsToIssue = items.filter(i => i.currentIssuing > 0);
     if (itemsToIssue.length === 0) {
       setError('Error: No materials have been issued. Please enter quantities in "Current Issuing".');
+      return;
+    }
+
+    // 4. EDGE CASE: Ensure we can derive valid work order numbers for backend
+    const woNumbers = selectedWOs
+      .map(id => {
+        const wo = (state.workOrders || []).find(w =>
+          String(w.wo_id || w.id) === String(id)
+        );
+
+        const val = (wo?.work_order_number || wo?.wo_number || '').toString().trim();
+
+        if (!val) {
+          console.error("❌ INVALID WO:", wo);
+          return null;
+        }
+
+        return val;
+      })
+      .filter(Boolean);
+  
+    console.log("✅ FINAL WO NUMBERS:", woNumbers);
+
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/a4296404-738f-4161-8b56-9be5b2040536', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id: `log_${Date.now()}_indent_handleSubmit`,
+        timestamp: Date.now(),
+        runId: 'post-fix',
+        hypothesisId: 'A',
+        location: 'IndentForm.jsx:144',
+        message: 'Indent handleSubmit woNumbers build',
+        data: {
+          selectedWOs,
+          woNumbers,
+          woNumbersLength: woNumbers.length,
+        },
+      }),
+    }).catch(() => {});
+    // #endregion
+
+    if (!woNumbers.length) {
+      setError('Error: Unable to derive valid Work Order numbers. Please re-select the Work Orders.');
       return;
     }
 
@@ -172,9 +243,14 @@ const IndentForm = ({ onBack, readOnly = false, initialData = null }) => {
             onChange={handleSubChange}
           >
             <option value="">Select Sub-contractor</option>
-            {state.subContractors.map(s => (
-              <option key={s.id} value={s.id}>{s.name}</option>
-            ))}
+            {state.subContractors.map(s => {
+              const value = s.subcontractor_id || s.id;
+              return (
+                <option key={value} value={value}>
+                  {s.name}
+                </option>
+              );
+            })}
             {!readOnly && <option value="add-new" className="text-blue-600 font-bold italic">+ Add New Sub-contractor</option>}
           </select>
         </div>
@@ -196,13 +272,13 @@ const IndentForm = ({ onBack, readOnly = false, initialData = null }) => {
               .filter(w => w.status === 'Todo')
               .map(wo => (
                 <div
-                  key={wo.id}
-                  onClick={() => handleWOSelection(wo.id)}
+                  key={wo.wo_id}
+                  onClick={() => handleWOSelection(wo.wo_id)}
                   className={`p-3 border rounded-lg cursor-pointer transition-all ${
-                    selectedWOs.includes(wo.id) ? 'bg-blue-50 border-blue-500 shadow-sm' : 'border-gray-200 hover:border-gray-300'
+                    selectedWOs.includes(wo.wo_id) ? 'bg-blue-50 border-blue-500 shadow-sm' : 'border-gray-200 hover:border-gray-300'
                   }`}
                 >
-                  <p className="font-bold text-sm">{wo.woNumber}</p>
+                  <p className="font-bold text-sm">{wo.wo_number || wo.woNumber}</p>
                   <p className="text-xs text-gray-500">{wo.region}</p>
                 </div>
             ))}
@@ -232,9 +308,11 @@ const IndentForm = ({ onBack, readOnly = false, initialData = null }) => {
               <tbody className="divide-y divide-gray-200">
                 {items.map((item, idx) => (
                   <tr key={idx} className="hover:bg-gray-50 transition-colors">
-                    <td className="p-3 text-gray-700">{item.woNumber}</td>
+                    <td className="p-3 text-gray-700">{item.wo_number}</td>
                     <td className="p-3 text-gray-700">
-                      {state.items.find(i => i.id === item.itemId)?.name}
+                      {state.items.find(i => 
+                        String(i.material_id || i.id) === String(item.itemId)
+                      )?.name}
                     </td>
                     <td className="p-3 text-center text-gray-700">{item.estimated}</td>
                     <td className="p-3 text-center text-gray-700 font-semibold">{item.issued}</td>
@@ -247,7 +325,7 @@ const IndentForm = ({ onBack, readOnly = false, initialData = null }) => {
                           min="0"
                           className="w-full p-2 border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 text-center font-bold"
                           value={item.currentIssuing}
-                          onChange={(e) => updateQty(item.woNumber, item.itemId, e.target.value)}
+                          onChange={(e) => updateQty(item.wo_number, item.itemId, e.target.value)}
                         />
                       )}
                     </td>

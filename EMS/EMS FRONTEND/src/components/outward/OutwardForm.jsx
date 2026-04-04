@@ -93,14 +93,17 @@ const OutwardForm = ({ onBack }) => {
       return;
     }
 
+    // Build payload using camelCase keys, backend accepts both camelCase & snake_case
     const payload = {
       subcontractor: formData.subContractorId,
       indent: formData.indentId, 
       date: formData.date,
-      vehicle_no: formData.vehicleNo,
+      // vehicleNo will be mapped to vehicle_no on the backend
+      vehicleNo: formData.vehicleNo,
       items: items.map(item => ({
+        // Support backend material_id || materialId || material
         material: item.itemId,
-        quantity: item.quantity,
+        quantity: Number(item.quantity) || 0,
         remarks: item.remarks
       }))
     };
@@ -142,6 +145,8 @@ const OutwardForm = ({ onBack }) => {
             value={formData.indentId}
             disabled={isReadOnly || loadingIndents}
             onChange={(e) => setFormData({ ...formData, indentId: e.target.value })}
+            onFocus={(e) => (e.target.size = 6)}
+            onBlur={(e) => (e.target.size = 1)}
             required
           >
             <option value="">{loadingIndents ? 'Loading Indents...' : 'Select Indent No'}</option>
@@ -215,9 +220,14 @@ const OutwardForm = ({ onBack }) => {
                       required
                     >
                       <option value="">Select Item</option>
-                      {state.items.map(i => (
-                        <option key={i.material_id} value={i.material_id}>{i.name}</option>
-                      ))}
+                      {(state.items || []).map(i => {
+                        const materialId = i.material_id || i.id;
+                        return (
+                          <option key={materialId} value={materialId}>
+                            {i.name}
+                          </option>
+                        );
+                      })}
                     </select>
                   </td>
                   <td className="p-3">

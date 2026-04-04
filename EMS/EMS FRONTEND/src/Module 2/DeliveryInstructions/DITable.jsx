@@ -40,18 +40,30 @@ const DITable = ({ di }) => {
             </tr>
           </thead>
           <tbody>
-            {di.items.map((item, idx) => {
-              // Lookup from state to ensure name/unit shows for new items
-              const itemDetails = state.items.find(i => i.id === Number(item.itemId));
-              return (
-                <tr key={idx} className="border-b border-gray-100 hover:bg-blue-50/30 transition-colors">
-                  <td className="px-6 py-4 text-sm font-medium text-gray-500">{idx + 1}</td>
-                  <td className="px-6 py-4 text-sm font-bold text-gray-900">{itemDetails?.name}</td>
-                  <td className="px-6 py-4 text-sm text-gray-600 italic">{itemDetails?.unit}</td>
-                  <td className="px-6 py-4 text-sm font-bold text-indigo-700">{item.quantity}</td>
-                </tr>
-              );
-            })}
+            {(di.items || []).length > 0 ? (
+              di.items.map((item, idx) => {
+                const itemDetails = state.items.find(i => 
+                  String(i.material_id || i.id) === String(item.itemId)
+                );
+                const displayName = item.material_name || itemDetails?.name || 'Unknown';
+                const displayUnit = item.unit || itemDetails?.unit || '-';
+
+                return (
+                  <tr key={item.itemId || idx} className="border-b border-gray-100 hover:bg-blue-50/30 transition-colors">
+                    <td className="px-6 py-4 text-sm font-medium text-gray-500">{idx + 1}</td>
+                    <td className="px-6 py-4 text-sm font-bold text-gray-900">{displayName}</td>
+                    <td className="px-6 py-4 text-sm text-gray-600 italic">{displayUnit}</td>
+                    <td className="px-6 py-4 text-sm font-bold text-indigo-700">{item.quantity}</td>
+                  </tr>
+                );
+              })
+            ) : (
+              <tr>
+                <td colSpan={4} className="px-6 py-8 text-center text-gray-400 text-sm italic">
+                  No Data Found
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>

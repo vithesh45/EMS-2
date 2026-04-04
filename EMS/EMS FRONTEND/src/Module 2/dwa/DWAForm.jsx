@@ -19,7 +19,7 @@ const DWAForm = ({ onBack, readOnly = false, initialData = null }) => {
     if (!tempItem.itemId || !tempItem.quantity || tempItem.quantity <= 0) return;
     
     setAddedItems([...addedItems, { 
-      itemId: Number(tempItem.itemId), 
+      itemId: tempItem.itemId, 
       quantity: Number(tempItem.quantity) 
     }]);
 
@@ -88,9 +88,14 @@ const DWAForm = ({ onBack, readOnly = false, initialData = null }) => {
                 onBlur={(e) => (e.target.size = 1)}
               >
                 <option value="">-- Choose Item --</option>
-                {state.items.map(i => (
-                  <option key={i.id} value={i.id}>{i.name}</option>
-                ))}
+                {(state.items || []).map(i => {
+                  const materialId = i.material_id || i.id;
+                  return (
+                    <option key={materialId} value={materialId}>
+                      {i.name}
+                    </option>
+                  );
+                })}
               </select>
             </div>
             <div className="w-48">
@@ -123,7 +128,9 @@ const DWAForm = ({ onBack, readOnly = false, initialData = null }) => {
           <tbody>
             {addedItems.length > 0 ? (
               addedItems.map((item, idx) => {
-                const itemInfo = state.items.find(i => i.id === item.itemId);
+                const itemInfo = state.items.find(i => 
+                  String(i.material_id || i.id) === String(item.itemId)
+                );
                 return (
                   <tr key={idx} className="border-b border-gray-200 hover:bg-gray-50">
                     <td className="px-4 py-3 font-medium text-gray-900">{itemInfo?.name}</td>

@@ -36,10 +36,12 @@ const InventoryCard = ({ data, type, onClick }) => {
       <div className="mt-4 border-t border-gray-100 pt-3">
         <div className="flex flex-wrap gap-2">
           {data.items.slice(0, 3).map((item, idx) => {
-            const itemDetails = state.items.find(i => i.id === item.itemId);
+            const itemDetails = state.items.find(i => 
+              String(i.material_id || i.id) === String(item.itemId)
+            );
             return (
               <span key={idx} className="text-[10px] bg-white/50 text-gray-600 px-2 py-1 rounded border border-gray-100">
-                {itemDetails?.name}
+                {itemDetails?.name || '-'}
               </span>
             );
           })}

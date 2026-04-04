@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useStock } from '../../hooks/useStock';
 import { ChevronLeft, Package, Clock, MapPin, ArrowRight } from 'lucide-react';
+import api from '../../api/base';
 
 // --- SUB-COMPONENT: INVENTORY CARD ---
 const InventoryCard = ({ data, type, onClick }) => {
@@ -103,19 +104,23 @@ const InventoryDetails = ({ data, type, onBack }) => {
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200 text-gray-700">
-                {data.items.map((item, idx) => {
-                  const itemDetails = state.items.find(i => i.id === item.itemId);
-                  return (
-                    <tr key={idx} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-6 py-4 font-medium">{itemDetails?.name}</td>
-                      <td className="px-6 py-4 text-center font-mono font-bold text-gray-900">
-                        {type === 'INDENT' ? item.currentIssuing : item.estimated}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
+            <tbody className="divide-y divide-gray-200 text-gray-700">
+              {data.items.map((item, idx) => {
+                const itemDetails = state.items.find(i => 
+                  String(i.material_id || i.id) === String(item.itemId)
+                );
+                return (
+                  <tr key={idx} className="hover:bg-gray-50 transition-colors">
+                    <td className="px-6 py-4 font-medium">
+                      {itemDetails?.name || '-'}
+                    </td>
+                    <td className="px-6 py-4 text-center font-mono font-bold text-gray-900">
+                      {type === 'INDENT' ? item.currentIssuing : item.estimated}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
             </table>
           </div>
         </div>
@@ -126,18 +131,36 @@ const InventoryDetails = ({ data, type, onBack }) => {
 
 // --- MAIN MODULE ---
 const InventoryModule = ({ readOnly = false }) => {
-  const { state } = useStock();
+  const { state, reloadInventory } = useStock();
   const [selectedItem, setSelectedItem] = useState(null);
+
+  const handleMarkComplete = async (wo) => {
+    if (readOnly) return;
+    if (!wo?.wo_id) return;
+    if (!window.confirm('Mark this Work Order as complete and update backend status?')) return;
+
+    try {
+      await api.patch(`/workorders/${wo.wo_id}/status/`, { status: 'closed' });
+      if (typeof reloadInventory === 'function') {
+        await reloadInventory();
+      }
+    } catch (err) {
+      console.error('Failed to mark WO complete', err?.response?.data || err);
+      alert('Failed to update Work Order status. Check console for details.');
+    }
+  };
 
   // Filter items specifically for the "In Progress" section
   const inProgressItems = [
     ...(state.indents || []).map(i => ({ ...i, displayType: 'INDENT' })),
-    ...(state.workOrders || []).filter(wo => wo.status === 'In Progress').map(w => ({ ...w, displayType: 'WO' }))
+    ...(state.workOrders || [])
+      .filter(wo => wo.status === 'in_progress' || wo.status === 'In Progress')
+      .map(w => ({ ...w, displayType: 'WO' }))
   ];
 
   // Filter items specifically for the "Todo" section
   const todoItems = (state.workOrders || [])
-    .filter(wo => wo.status === 'Todo')
+    .filter(wo => wo.status === 'pending' || wo.status === 'Todo')
     .map(w => ({ ...w, displayType: 'WO' }));
 
   if (selectedItem) {
@@ -192,12 +215,22 @@ const InventoryModule = ({ readOnly = false }) => {
           {todoItems.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {todoItems.map((item, idx) => (
-                <InventoryCard 
-                  key={`todo-${item.id}-${idx}`} 
-                  data={item} 
-                  type={item.displayType} 
-                  onClick={() => setSelectedItem({ data: item, type: item.displayType })}
-                />
+                <div key={`todo-${item.wo_id || item.id || idx}`} className="space-y-2">
+                  <InventoryCard 
+                    data={item} 
+                    type={item.displayType} 
+                    onClick={() => setSelectedItem({ data: item, type: item.displayType })}
+                  />
+                  {!readOnly && item.displayType === 'WO' && item.wo_id && (
+                    <button
+                      type="button"
+                      onClick={() => handleMarkComplete(item)}
+                      className="text-xs font-semibold text-blue-700 hover:text-blue-900"
+                    >
+                      Mark as Complete
+                    </button>
+                  )}
+                </div>
               ))}
             </div>
           ) : (

@@ -62,23 +62,27 @@ const WorkOrderModule = ({ readOnly = false }) => {
               {filteredWO.length > 0 ? (
                 filteredWO.map(wo => (
                   <tr 
-                    key={wo.id} 
+                    key={wo.wo_id || wo.id} 
                     onClick={() => { setSelectedEntry(wo); setView('details'); }}
                     className="hover:bg-blue-50/50 cursor-pointer transition-colors group"
                   >
-                    <td className="px-6 py-4 font-bold text-black-600 group-hover:text-indigo-900">{wo.woNumber}</td>
+                    <td className="px-6 py-4 font-bold text-black-600 group-hover:text-indigo-900">
+                      {wo.woNumber || wo.wo_number || wo.work_order_number}
+                    </td>
                     <td className="px-6 py-4 text-gray-600">
                       <div className="flex items-center gap-1">
                         <MapPin size={14} className="text-gray-400" />
                         {wo.region || 'N/A'}
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-gray-600">{wo.date}</td>
+                    <td className="px-6 py-4 text-gray-600">{wo.date || '-'}</td>
                     <td className="px-6 py-4 text-center">
                       <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                        wo.status === 'In Progress' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'
+                        (wo.status === 'in_progress' || wo.status === 'In Progress')
+                          ? 'bg-blue-100 text-blue-700'
+                          : 'bg-gray-100 text-gray-700'
                       }`}>
-                        {wo.status || 'Todo'}
+                        {wo.status || 'pending'}
                       </span>
                     </td>
                   </tr>

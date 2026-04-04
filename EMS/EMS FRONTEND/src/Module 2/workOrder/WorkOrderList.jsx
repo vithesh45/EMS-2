@@ -39,25 +39,37 @@ const WorkOrderList = ({ entry, onBack }) => {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {entry.items.map((item, idx) => {
-              const itemInfo = state.items.find(i => i.id === Number(item.itemId));
-              const issued = item.issued || 0;
-              const balance = item.estimated - issued;
-              return (
-                <tr key={idx} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-6 py-4 text-sm text-gray-400 font-medium">{idx + 1}</td>
-                  <td className="px-6 py-4">
-                    <div className="text-sm font-bold text-gray-900">{itemInfo?.name}</div>
-                    <div className="text-xs text-gray-500 italic">{itemInfo?.unit}</div>
-                  </td>
-                  <td className="px-6 py-4 text-center text-sm font-black text-indigo-700 bg-indigo-50/30">{item.estimated}</td>
-                  <td className="px-6 py-4 text-center text-sm font-bold text-blue-700">{issued}</td>
-                  <td className={`px-6 py-4 text-center text-sm font-black ${balance > 0 ? 'text-green-600' : 'text-amber-600'}`}>
-                    {balance}
-                  </td>
-                </tr>
-              );
-            })}
+            {(entry.items || []).length > 0 ? (
+              entry.items.map((item, idx) => {
+                const itemInfo = state.items.find(i => 
+                  String(i.material_id || i.id) === String(item.itemId)
+                );
+                const displayName = item.material_name || itemInfo?.name || 'Unknown';
+                const displayUnit = item.unit || itemInfo?.unit || '-';
+                const issued = item.issued || 0;
+                const balance = (item.estimated || 0) - issued;
+                return (
+                  <tr key={item.itemId || idx} className="hover:bg-gray-50 transition-colors">
+                    <td className="px-6 py-4 text-sm text-gray-400 font-medium">{idx + 1}</td>
+                    <td className="px-6 py-4">
+                      <div className="text-sm font-bold text-gray-900">{displayName}</div>
+                      <div className="text-xs text-gray-500 italic">{displayUnit}</div>
+                    </td>
+                    <td className="px-6 py-4 text-center text-sm font-black text-indigo-700 bg-indigo-50/30">{item.estimated}</td>
+                    <td className="px-6 py-4 text-center text-sm font-bold text-blue-700">{issued}</td>
+                    <td className={`px-6 py-4 text-center text-sm font-black ${balance > 0 ? 'text-green-600' : 'text-amber-600'}`}>
+                      {balance}
+                    </td>
+                  </tr>
+                );
+              })
+            ) : (
+              <tr>
+                <td colSpan={5} className="px-6 py-8 text-center text-gray-400 text-sm italic">
+                  No Data Found
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
