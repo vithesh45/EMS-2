@@ -12,10 +12,20 @@ const WorkOrderModule = ({ readOnly = false }) => {
   const [selectedEntry, setSelectedEntry] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
 
-  const filteredWO = (state.workOrders || []).filter(wo => 
-    wo.woNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (wo.region && wo.region.toLowerCase().includes(searchTerm.toLowerCase()))
+const filteredWO = (state.workOrders || []).filter(wo => {
+  const woNum =
+    wo.woNumber ||
+    wo.wo_number ||
+    wo.work_order_number ||
+    "";
+
+  const region = wo.region || "";
+
+  return (
+    woNum.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    region.toLowerCase().includes(searchTerm.toLowerCase())
   );
+});
 
   // Pass readOnly down to children so they can hide Save/Submit buttons
   if (view === 'add') return <WorkOrderForm onBack={() => setView('list')} readOnly={readOnly} />;

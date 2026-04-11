@@ -286,6 +286,7 @@ class StoreStockListAPIView(APIView):
 
 
 # ---------------- WORK ORDER ----------------
+# ---------------- WORK ORDER ----------------
 class WorkOrderListCreateAPIView(APIView):
     def get(self, request):
         work_orders = WorkOrder.objects.prefetch_related("materials")
@@ -298,6 +299,9 @@ class WorkOrderListCreateAPIView(APIView):
                 "region": wo.bescom_office,
                 "village": wo.village,
                 "status": wo.status,
+                "date": wo.date,
+
+                
                 "materials": [
                     {
                         "material": item.material.name,
@@ -311,25 +315,46 @@ class WorkOrderListCreateAPIView(APIView):
     
     @transaction.atomic
     def post(self, request):
+        data = request.data or {}
+        
+        # Normalize field names
+        wo_number = data.get("work_order_number") or data.get("woNumber")
+        region = data.get("region") or data.get("bescom_office")
+        
+        if not wo_number:
+            return Response({"error": "Work order number is required"}, status=400)
+        
         work_order = WorkOrder.objects.create(
-            wo_number=request.data.get("work_order_number"),
-            bescom_office=request.data.get("region", ""),
-            village=request.data.get("village", ""),
-            status=request.data.get("status", "pending")
+            wo_number=wo_number,
+            bescom_office=region or "",
+            village=data.get("village", ""),
+            status=data.get("status", "pending"),
+            date=data.get("date"),
         )
         
-        for item in request.data.get("materials", []):
+        # Support both 'materials' and 'items' from frontend
+        materials = data.get("materials") or data.get("items") or []
+        
+        for item in materials:
+            # Support both material/materialId/itemId
+            material_id = item.get("material") or item.get("materialId") or item.get("itemId")
+            # Support both quantity/estimated
+            quantity = item.get("quantity") or item.get("estimated")
+            
+            if not material_id or not quantity:
+                continue
+                
             WorkOrderMaterial.objects.create(
                 wo=work_order,
-                material_id=item["material"],
-                quantity=item["quantity"]
+                material_id=material_id,
+                quantity=quantity
             )
         
         return Response({
             "message": "Work Order created successfully",
-            "wo_id": work_order.wo_id,
+            "wo_id": str(work_order.wo_id),
             "work_order_number": work_order.wo_number
-        }, status=status.HTTP_201_CREATED)
+        }, status=201)
 
 
 # ---------------- WORK ORDER STATUS ----------------

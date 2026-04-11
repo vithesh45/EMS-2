@@ -10,7 +10,7 @@ urlpatterns = [
     path("outwards/", OutwardListCreateAPIView.as_view()),
     path("store-stock/", StoreStockListAPIView.as_view()),
 
-        path("workorders/", WorkOrderListCreateAPIView.as_view()),
+        path("work-orders/", WorkOrderListCreateAPIView.as_view()),
     path("workorders/<uuid:wo_id>/status/", WorkOrderStatusAPIView.as_view()),
     path("indents/", IndentAPIView.as_view()),
 ]

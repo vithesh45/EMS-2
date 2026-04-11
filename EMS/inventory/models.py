@@ -60,6 +60,8 @@ class WorkOrder(models.Model):
     bescom_office = models.CharField(max_length=100)
     village = models.CharField(max_length=100)
     status = models.CharField(max_length=50)
+    date = models.DateField(null=True, blank=True)
+
 
     def __str__(self):
         return self.wo_number
