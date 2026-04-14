@@ -13,10 +13,10 @@ const WorkOrderList = ({ entry, onBack }) => {
 
       <div className="p-6 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-100 mb-8 flex justify-between items-center">
         <div>
-          <h2 className="text-3xl font-black text-gray-900 mb-2">{entry.woNumber}</h2>
+          <h2 className="text-3xl font-black text-gray-900 mb-2">{entry.woNumber || entry.wo_number}</h2>
           <div className="flex gap-4 text-sm font-bold text-indigo-600 uppercase">
-            <span className="flex items-center gap-1"><MapPin size={16}/> {entry.region}</span>
-            <span className="flex items-center gap-1"><Calendar size={16}/> {entry.date}</span>
+            <span className="flex items-center gap-1"><MapPin size={16} /> {entry.region}</span>
+            <span className="flex items-center gap-1"><Calendar size={16} /> {entry.date}</span>
           </div>
         </div>
         <div className="text-right">
@@ -39,24 +39,31 @@ const WorkOrderList = ({ entry, onBack }) => {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {(entry.items || []).length > 0 ? (
-              entry.items.map((item, idx) => {
-                const itemInfo = state.items.find(i => 
-                  String(i.material_id || i.id) === String(item.itemId)
+            {((entry.items || entry.materials) || []).length > 0 ? (
+              (entry.items || entry.materials).map((item, idx) => {
+                const itemInfo = state.items.find(i =>
+                  String(i.name).toLowerCase() === String(item.itemId || item.material).toLowerCase()
                 );
-                const displayName = item.material_name || itemInfo?.name || 'Unknown';
-                const displayUnit = item.unit || itemInfo?.unit || '-';
+
+                const displayName = itemInfo?.name || item.material || 'Unknown';
+                const displayUnit = itemInfo?.unit || item.unit || '-';
+                const estimated = item.estimated || item.quantity || 0;
                 const issued = item.issued || 0;
-                const balance = (item.estimated || 0) - issued;
+                const balance = estimated - issued;
+
                 return (
-                  <tr key={item.itemId || idx} className="hover:bg-gray-50 transition-colors">
+                  <tr key={item.itemId || item.material || idx} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4 text-sm text-gray-400 font-medium">{idx + 1}</td>
                     <td className="px-6 py-4">
                       <div className="text-sm font-bold text-gray-900">{displayName}</div>
                       <div className="text-xs text-gray-500 italic">{displayUnit}</div>
                     </td>
-                    <td className="px-6 py-4 text-center text-sm font-black text-indigo-700 bg-indigo-50/30">{item.estimated}</td>
-                    <td className="px-6 py-4 text-center text-sm font-bold text-blue-700">{issued}</td>
+                    <td className="px-6 py-4 text-center text-sm font-black text-indigo-700 bg-indigo-50/30">
+                      {estimated}
+                    </td>
+                    <td className="px-6 py-4 text-center text-sm font-bold text-blue-700">
+                      {issued}
+                    </td>
                     <td className={`px-6 py-4 text-center text-sm font-black ${balance > 0 ? 'text-green-600' : 'text-amber-600'}`}>
                       {balance}
                     </td>

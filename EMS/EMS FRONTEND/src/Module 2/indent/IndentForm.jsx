@@ -51,13 +51,13 @@ const IndentForm = ({ onBack, readOnly = false, initialData = null }) => {
     if (e.target.value === 'add-new') {
       setShowModal(true);
     } else {
-      const sub = state.subContractors.find(s => 
+      const sub = state.subContractors.find(s =>
         String(s.subcontractor_id || s.id) === String(e.target.value)
       );
-      setFormData({ 
-        ...formData, 
-        subContractorId: e.target.value, 
-        region: sub?.region || formData.region 
+      setFormData({
+        ...formData,
+        subContractorId: e.target.value,
+        region: sub?.region || formData.region
       });
     }
   };
@@ -106,14 +106,15 @@ const IndentForm = ({ onBack, readOnly = false, initialData = null }) => {
         ...prev,
         region: [...new Set(allSelectedRegions)].join(', ')
       }));
-
-      const newItems = Array.isArray(wo.items) ? wo.items.map(woItem => ({
-        itemId: woItem.itemId,
-        wo_number: wo.wo_number || wo.woNumber || wo.work_order_number,
-        estimated: woItem.estimated,
-        issued: woItem.issued || 0,
-        currentIssuing: 0
-      })) : [];
+const newItems = Array.isArray(wo.items || wo.materials)
+  ? (wo.items || wo.materials).map(mat => ({
+      itemId: mat.itemId || mat.material, // ✅ supports both
+      wo_number:  wo.work_order_number,
+      estimated: mat.estimated || mat.quantity, // ✅ supports both
+      issued: mat.issued || 0,
+      currentIssuing: 0
+    }))
+  : [];
 
       setItems(prev => [...prev, ...newItems]);
     }
@@ -121,7 +122,7 @@ const IndentForm = ({ onBack, readOnly = false, initialData = null }) => {
 
   const updateQty = (woNo, itemId, val) => {
     if (readOnly) return;
-    setError(''); 
+    setError('');
     setItems(items.map(i => (String(i.wo_number) === String(woNo) && i.itemId === itemId) ? { ...i, currentIssuing: Number(val) } : i));
   };
 
@@ -162,7 +163,7 @@ const IndentForm = ({ onBack, readOnly = false, initialData = null }) => {
         return val;
       })
       .filter(Boolean);
-  
+
     console.log("✅ FINAL WO NUMBERS:", woNumbers);
 
     // #region agent log
@@ -182,7 +183,7 @@ const IndentForm = ({ onBack, readOnly = false, initialData = null }) => {
           woNumbersLength: woNumbers.length,
         },
       }),
-    }).catch(() => {});
+    }).catch(() => { });
     // #endregion
 
     if (!woNumbers.length) {
@@ -192,17 +193,17 @@ const IndentForm = ({ onBack, readOnly = false, initialData = null }) => {
 
     try {
       // Call backend API
-      const payload = {
-        indentNo: formData.indentNo,
-        workOrderId: selectedWOs[0], // Use first selected WO
-        subContractorId: formData.subContractorId,
-        status: 'Todo',
-        items: itemsToIssue.map(item => ({
-          itemId: item.itemId,
-          quantity: item.currentIssuing
-        }))
-      };
-      
+const payload = {
+  indent_no: formData.indentNo,          
+  wo: selectedWOs,                       
+  subcontractor: formData.subContractorId, 
+  status: 'Todo',
+  items: itemsToIssue.map(item => ({
+    material: item.itemId,               
+    quantity: Number(item.currentIssuing || 0)
+  }))
+};
+
       await addIndent(payload);
       onBack();
     } catch (error) {
@@ -232,7 +233,7 @@ const IndentForm = ({ onBack, readOnly = false, initialData = null }) => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
         <Input label="Indent No" value={formData.indentNo} onChange={(e) => !readOnly && setFormData({ ...formData, indentNo: e.target.value })} placeholder="IND-0000" required disabled={readOnly} />
-        
+
         <div>
           <label className="block text-sm font-semibold text-gray-700 mb-2">Sub-contractor</label>
           <select
@@ -254,11 +255,11 @@ const IndentForm = ({ onBack, readOnly = false, initialData = null }) => {
           </select>
         </div>
 
-        <Input 
-          label="Region(s)" 
-          value={formData.region} 
-          onChange={(e) => !readOnly && setFormData({ ...formData, region: e.target.value })} 
-          placeholder="Regions auto-filled" 
+        <Input
+          label="Region(s)"
+          value={formData.region}
+          onChange={(e) => !readOnly && setFormData({ ...formData, region: e.target.value })}
+          placeholder="Regions auto-filled"
           disabled
         />
       </div>
@@ -268,19 +269,21 @@ const IndentForm = ({ onBack, readOnly = false, initialData = null }) => {
           <h3 className="text-lg font-bold text-gray-900 mb-4">Select Linked Work Orders <span className="text-red-500">*</span></h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {state.workOrders
-              .filter(w => w.status === 'Todo')
+              .filter(w => {
+                const status = (w.status || '').toLowerCase();
+                return status === 'todo' || status === 'pending';
+              })
               .map(wo => (
                 <div
                   key={wo.wo_id}
                   onClick={() => handleWOSelection(wo.wo_id)}
-                  className={`p-3 border rounded-lg cursor-pointer transition-all ${
-                    selectedWOs.includes(wo.wo_id) ? 'bg-blue-50 border-blue-500 shadow-sm' : 'border-gray-200 hover:border-gray-300'
-                  }`}
+                  className={`p-3 border rounded-lg cursor-pointer transition-all ${selectedWOs.includes(wo.wo_id) ? 'bg-blue-50 border-blue-500 shadow-sm' : 'border-gray-200 hover:border-gray-300'
+                    }`}
                 >
                   <p className="font-bold text-sm">{wo.wo_number || wo.woNumber}</p>
                   <p className="text-xs text-gray-500">{wo.region}</p>
                 </div>
-            ))}
+              ))}
           </div>
           {state.workOrders.filter(w => w.status === 'Todo').length === 0 && (
             <div className="p-8 border-2 border-dashed border-gray-100 rounded-xl text-center">
@@ -307,11 +310,15 @@ const IndentForm = ({ onBack, readOnly = false, initialData = null }) => {
               <tbody className="divide-y divide-gray-200">
                 {items.map((item, idx) => (
                   <tr key={idx} className="hover:bg-gray-50 transition-colors">
-                    <td className="p-3 text-gray-700">{item.wo_number}</td>
+                    <td className="p-3 text-gray-700">{item.wo_number || item.woNumber || item.work_order_number ||  '-'}</td>
                     <td className="p-3 text-gray-700">
-                      {state.items.find(i => 
-                        String(i.material_id || i.id) === String(item.itemId)
-                      )?.name}
+   {(() => {
+  const itemInfo = state.items.find(i =>
+    String(i.name).toLowerCase() === String(item.itemId || item.material).toLowerCase()
+  );
+
+  return itemInfo?.name || item.material || 'Unknown';
+})()}
                     </td>
                     <td className="p-3 text-center text-gray-700">{item.estimated}</td>
                     <td className="p-3 text-center text-gray-700 font-semibold">{item.issued}</td>

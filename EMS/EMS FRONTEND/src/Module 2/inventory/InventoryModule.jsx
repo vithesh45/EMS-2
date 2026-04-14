@@ -37,7 +37,7 @@ const InventoryCard = ({ data, type, onClick }) => {
       
       <div className="mt-4 border-t border-gray-100 pt-3 flex justify-between items-center">
         <span className="text-[11px] text-gray-500 font-medium">
-          {data.items?.length || 0} Materials linked
+          {(data.items?.length || data.materials?.length || 0)} Materials linked
         </span>
         <ArrowRight size={14} className={isInProgress ? 'text-blue-500' : 'text-gray-300'} />
       </div>
@@ -48,7 +48,9 @@ const InventoryCard = ({ data, type, onClick }) => {
 // --- SUB-COMPONENT: DETAILS VIEW ---
 const InventoryDetails = ({ data, type, onBack }) => {
   const { state } = useStock();
-  const title = type === 'INDENT' ? data.indentNo : data.woNumber;
+  const title = type === 'INDENT'
+  ? data.indentNo || data.indent_no
+  : data.woNumber || data.wo_number || data.work_order_number;
   const isInProgress = type === 'INDENT' || data.status === 'In Progress';
 
   return (
@@ -104,20 +106,25 @@ const InventoryDetails = ({ data, type, onBack }) => {
                   </th>
                 </tr>
               </thead>
-            <tbody className="divide-y divide-gray-200 text-gray-700">
-              {data.items.map((item, idx) => {
-                const itemDetails = state.items.find(i => 
-                  String(i.material_id || i.id) === String(item.itemId)
-                );
+           <tbody className="divide-y divide-gray-200 text-gray-700">
+  {(Array.isArray(data.items) ? data.items : data.materials || []).map((item, idx) => {
+                const itemDetails = state.items.find(i =>
+  String(i.name).toLowerCase() === String(item.itemId || item.material).toLowerCase()
+);
+
+const displayName = itemDetails?.name || item.material || '-';
+const value = type === 'INDENT'
+  ? item.currentIssuing
+  : item.estimated || item.quantity;
                 return (
                   <tr key={idx} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 font-medium">
-                      {itemDetails?.name || '-'}
-                    </td>
-                    <td className="px-6 py-4 text-center font-mono font-bold text-gray-900">
-                      {type === 'INDENT' ? item.currentIssuing : item.estimated}
-                    </td>
-                  </tr>
+  <td className="px-6 py-4 font-medium">
+    {displayName}
+  </td>
+  <td className="px-6 py-4 text-center font-mono font-bold text-gray-900">
+    {value}
+  </td>
+</tr>
                 );
               })}
             </tbody>
